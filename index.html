@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Incidentes PRF - 2026</title>
+
+    <!-- Compiled and minified CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+
+    <link href="css/style.css" rel="stylesheet">
+
+</head>
+
+<body>
+
+    <header>
+        <nav class="navbar navbar-expand-lg bg-body-tertiary border-bottom">
+            <div class="container">
+                <a class="navbar-brand fw-bold" href="#">Incidentes no trânsito | PRF - 2026</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+                    aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav ms-auto">
+                        <li class="nav-item">
+                            <a class="nav-link active" aria-current="page" href="#">Início</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#">Sobre os dados</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main id="loading" class="container align-content-center">
+        <div class="d-flex flex-column align-content-center flex-wrap">
+            <div class="row align-middle">
+                <div class="col text-center">
+                    <div class="spinner-border" role="status"></div>
+                </div>
+            </div>
+            <div class="row align-middle">
+                <div class="col text-center">
+                    <div>Acessando e organizando os dados do dataset</div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col text-center">
+                    <div id="noData">Carregando...</div>
+                    <div id="withData">Carregando <span id="loadingData">0</span> de <span id="totalData">0</span> dados </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col">
+                    <div class="progress">
+                        <div id="progressbar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <main id="main-content" class="container">
+        <div class="kpi container my-5 text-center">
+            <div class="row justify-content-evenly">
+                <div class="col mx-3 p-3 rounded-3 bg-info text-dark d-flex flex-column gap-3">
+                    <div class="fw-bold">💀 Total de Óbitos</div>
+                    <div id="kpi-mortos" class="value">0</div>
+                </div>
+
+                <div class="col mx-3 p-3 rounded-3 bg-info text-dark d-flex flex-column gap-3">
+                    <div class="fw-bold">🚨 Feridos Graves</div>
+                    <div id="kpi-graves" class="value">0</div>
+                </div>
+
+                <div class="col mx-3 p-3 rounded-3 bg-info text-dark d-flex flex-column gap-3">
+                    <div class="fw-bold">🩹 Feridos Leves</div>
+                    <div id="kpi-leves" class="value">0</div>
+                </div>
+
+                <div class="col mx-3 p-3 rounded-3 bg-info text-dark d-flex flex-column gap-3">
+                    <div class="fw-bold">🟢 Envolvidos Ilesos</div>
+                    <div id="kpi-ilesos" class="value">0</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="container text-center">
+            <div class="row">
+                <div class="col">
+                    Registros correspondentes no subset atual: <span id="reg-count">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- <div class="container my-5">
+                <div class="cards-container">
+                    <div class="analysis-card">
+                        <h3>Geografia Crítica (Top 5 Estados)</h3>
+                        <div id="list-uf" class="data-list"></div>
+                    </div>
+                    <div class="analysis-card">
+                        <h3>Principais Fatores Geradores (Causas)</h3>
+                        <div id="list-causas" class="data-list"></div>
+                    </div>
+                    <div class="analysis-card">
+                        <h3>Tipos de Ocorrências Frequentes</h3>
+                        <div id="list-tipos" class="data-list"></div>
+                    </div>
+                    <div class="analysis-card">
+                        <h3>Perfil da Frota (Top 5 Veículos)</h3>
+                        <div id="list-veiculos" class="data-list"></div>
+                    </div>
+                    <div class="analysis-card">
+                        <h3>Top Rodovias (BR) e Municípios</h3>
+                        <div id="list-hotspots" class="data-list"></div>
+                    </div>
+                    <div class="analysis-card">
+                        <h3>Variáveis Ambientais e Demografia</h3>
+                        <div id="list-demografia" class="data-list"></div>
+                    </div>
+                </div>
+            </div>
+        </div> -->
+    </main>
+
+    <footer class="bg-body-tertiary border-top py-4">
+        <div class="container">
+            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-center">
+                <p class="mb-2 mb-sm-0 text-muted">Analise do dataset de incidentes em rodovias federais do
+                    Brasil em 2026.</p>
+                <ul class="list-unstyled d-flex mb-0">
+                    <li class="ms-3"><a class="text-muted text-decoration-none" href="#">Início</a></li>
+                    <li class="ms-3"><a class="text-muted text-decoration-none" href="#">Sobre os dados</a></li>
+                </ul>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Compiled and minified JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
+        crossorigin="anonymous"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/vega@5"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-lite@5"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-embed@6"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+    <script src="js/dataset.js"></script>
+</body>
+
+</html>
