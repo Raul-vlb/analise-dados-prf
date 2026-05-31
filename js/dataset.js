@@ -20,7 +20,8 @@ Papa.parse(URL_DATA, {
 
         document.getElementById('withData').style.display = 'block';
         document.getElementById('noData').style.display = 'none';
-        Filtrar();
+        
+        Estatisticas(BASE_PROCESSED);
     }
 });
 
