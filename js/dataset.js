@@ -1,6 +1,7 @@
 const URL_DATA = 'https://raw.githubusercontent.com/isaquexxz/projeto-extracao-de-dados/refs/heads/main/Dados_limpos.csv';
 let BASE_PROCESSED = [];
 let CURRENT_SUBSET = [];
+const sample = 10000; // Define o tamanho da amostra para os gráficos
 
 document.getElementById('withData').style.display = 'none';
 document.getElementById('noData').style.display = 'block';
@@ -20,7 +21,7 @@ Papa.parse(URL_DATA, {
 
         document.getElementById('withData').style.display = 'block';
         document.getElementById('noData').style.display = 'none';
-        
+
         Estatisticas(BASE_PROCESSED);
     }
 });
@@ -88,15 +89,21 @@ function Estatisticas(dataset) {
             document.getElementById('kpi-graves').innerText = graves.toLocaleString('pt-BR');
             document.getElementById('kpi-leves').innerText = leves.toLocaleString('pt-BR');
             document.getElementById('kpi-ilesos').innerText = ilesos.toLocaleString('pt-BR');
-            
+
             // libera o conteúdo principal
             document.getElementById('loading').style.display = 'none';
             document.getElementById('main-content').style.display = 'block'
-            
+
+            document.getElementById('reg-count').innerText = totalData.toLocaleString('pt-BR');
+
             // Para ativar os gráficos, chame-os aqui:
-            // if (document.getElementById('tab-vega-charts').classList.contains('active')) {
-            //     renderizarDezGraficosVega(dataset);
-            // }
+            iniciarGraficos(BASE_PROCESSED.slice(0, 10000)); // Passa uma amostra para os gráficos, para não sobrecarregar a renderização inicial
+
+            document.getElementById('sample-select').addEventListener('change', function () {
+                const val = this.value;
+                const subset = val === 'all' ? BASE_PROCESSED : BASE_PROCESSED.slice(0, parseInt(val));
+                iniciarGraficos(subset);
+            });
         }
     }
 
@@ -106,3 +113,66 @@ function Estatisticas(dataset) {
         document.getElementById('loadingData').innerText = "0";
     }
 };
+
+
+function iniciarGraficos(sampleData) {
+    // Aqui ocorre a construção dos specs dos gráficos usando o sampleData, 
+    // e depois a renderização com vegaEmbed.
+
+    // Configuração de tema escuro para os gráficos Vega-Lite
+    const configTemaDark = {
+        background: "transparent",
+        view: { stroke: "transparent" },
+        axis: {
+            domainColor: "#555",
+            gridColor: "#333",
+            tickColor: "#555",
+            labelColor: "#aaa",
+            titleColor: "#ccc",
+            labelFont: "system-ui, sans-serif",
+            titleFont: "system-ui, sans-serif",
+            titleFontSize: 12,
+            labelFontSize: 11
+        },
+        legend: {
+            labelColor: "#aaa",
+            titleColor: "#ccc",
+            labelFont: "system-ui, sans-serif",
+            titleFont: "system-ui, sans-serif",
+            titleFontSize: 12,
+            labelFontSize: 11
+        },
+        title: {
+            color: "#e0e0e0",
+            subtitleColor: "#aaa",
+            font: "system-ui, sans-serif",
+            fontSize: 14,
+            fontWeight: "bold"
+        },
+        mark: { tooltip: true },
+        point: { filled: true },
+        range: {
+            category: ["#38bdf8", "#fb923c", "#a78bfa", "#34d399", "#f472b6", "#facc15", "#60a5fa", "#f87171"],
+            diverging: ["#f87171", "#fb923c", "#facc15", "#34d399", "#38bdf8", "#a78bfa"],
+            heatmap: ["#1e3a5f", "#1e6091", "#1a759f", "#168aad", "#34a0a4", "#52b69a", "#76c893", "#99d98c"]
+        }
+    };
+
+    // Exemplo para o primeiro gráfico:
+    const specGrafico1 = {
+        $schema: "https://vega.github.io/schema/vega-lite/v5.json",
+        data: { values: sampleData },
+        config: configTemaDark,
+        width: "container", height: 280,
+        transform: [{ filter: "datum.idade > 0 && datum.idade < 95" }],
+        mark: "bar",
+        encoding: {
+            x: { field: "idade", type: "quantitative", bin: { maxbins: 15 }, title: "Idade Correlacionada" },
+            y: { aggregate: "count", type: "quantitative", title: "Registros de Envolvidos" },
+            color: { field: "estado_fisico", type: "nominal", scale: { scheme: "category10" }, title: "Condição" }
+        }
+    };
+
+    // Renderiza o gráfico no elemento com id "v-chart-1"
+    vegaEmbed("#v-chart-1", specGrafico1, { actions: false });
+}
