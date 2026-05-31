@@ -175,4 +175,111 @@ function iniciarGraficos(sampleData) {
 
     // Renderiza o gráfico no elemento com id "v-chart-1"
     vegaEmbed("#v-chart-1", specGrafico1, { actions: false });
+
+    // Top 10 Causas com Maior Índice de Óbitos
+    const specGrafico3 = {
+        $schema: "https://vega.github.io/schema/vega-lite/v5.json",
+        data: { values: sampleData },
+        config: configTemaDark,
+        width: "container", height: 280,
+        transform: [
+            { filter: "datum.causa_acidente !== 'NÃO INFORMADO' && datum.causa_acidente !== ''" },
+            {
+                aggregate: [{ op: "sum", field: "mortos", as: "total_mortos" }],
+                groupby: ["causa_acidente"]
+            },
+            {
+                window: [{ op: "row_number", as: "rank" }],
+                sort: [{ field: "total_mortos", order: "descending" }]
+            },
+            { filter: "datum.rank <= 10" }
+        ],
+        mark: { type: "bar", cornerRadiusTopLeft: 4, cornerRadiusTopRight: 4 },
+        encoding: {
+            x: { field: "causa_acidente", type: "nominal", title: "Top 10 Causas Principais", sort: "-y", axis: { labelAngle: -25, labelLimit: 120 } },
+            y: { field: "total_mortos", type: "quantitative", title: "Soma Absoluta de Óbitos" },
+            color: { value: "#ef4444" }
+        }
+    };
+
+    // Renderiza o gráfico no elemento com id "v-chart-3"
+    vegaEmbed("#v-chart-3", specGrafico3, { actions: false });
+
+    // Vítimas por Tipo de Pista
+    const specGrafico4 = {
+        $schema: "https://vega.github.io/schema/vega-lite/v5.json",
+        data: { values: sampleData },
+        config: configTemaDark,
+        width: "container", height: 280,
+        mark: "bar",
+        encoding: {
+            x: { field: "tipo_pista", type: "nominal", title: "Pista", axis: { labelAngle: 0 } },
+            y: { aggregate: "sum", field: "feridos_graves", type: "quantitative", title: "Feridos Graves" },
+            color: { value: "#f59e0b" }
+        }
+    };
+
+    // Renderiza o gráfico no elemento com id "v-chart-4"
+    vegaEmbed("#v-chart-4", specGrafico4, { actions: false });
+
+    // Impacto do Desenho Geométrico (Traçado da Via)
+    const specGrafico5 = {
+        $schema: "https://vega.github.io/schema/vega-lite/v5.json",
+        data: { values: sampleData },
+        config: configTemaDark,
+        width: "container", height: 280,
+        transform: [
+            { filter: "datum.tracado_via !== 'Não Informado' && datum.tracado_via !== '' && datum.tracado_via !== null" },
+            { aggregate: [{ op: "count", as: "total_ocorrencias" }], groupby: ["tracado_via", "classe_acc"] },
+            { joinaggregate: [{ op: "sum", field: "total_ocorrencias", as: "total_por_tracado" }], groupby: ["tracado_via"] },
+            { window: [{ op: "dense_rank", as: "ranking_posicao" }], sort: [{ field: "total_por_tracado", order: "descending" }] },
+            { calculate: "datum.ranking_posicao <= 7 ? datum.tracado_via : 'Outros Layouts'", as: "tracado_agrupado" }
+        ],
+        mark: { type: "bar", cornerRadiusTopLeft: 4, cornerRadiusTopRight: 4 },
+        encoding: {
+            x: {
+                field: "tracado_agrupado", type: "nominal", title: "Configuração Geométrica da Via", sort: "-y",
+                axis: { labelAngle: 0, labelOverlap: "hide", labelLimit: 110 }
+            },
+            y: { field: "total_ocorrencias", type: "quantitative", aggregate: "sum", title: "Quantidade de Ocorrências" },
+            color: { field: "classe_acc", type: "nominal", scale: { scheme: "tableau10" }, title: "Gravidade" }
+        }
+    };
+
+    // Renderiza o gráfico no elemento com id "v-chart-5"
+    vegaEmbed("#v-chart-5", specGrafico5, { actions: false });
+
+    // Densidade Espacial por Fase do Dia e UF
+    const specGrafico6 = {
+        $schema: "https://vega.github.io/schema/vega-lite/v5.json",
+        data: { values: sampleData },
+        config: configTemaDark,
+        width: "container", height: 280,
+        mark: "rect",
+        encoding: {
+            x: { field: "uf", type: "nominal", title: "Estado (UF)" },
+            y: { field: "fase_dia", type: "nominal", title: "Fase Luminosa" },
+            color: { aggregate: "count", type: "quantitative", scale: { scheme: "viridis" }, title: "Sinistros" }
+        }
+    };
+
+    // Renderiza o gráfico no elemento com id "v-chart-6"
+    vegaEmbed("#v-chart-6", specGrafico6, { actions: false });
+
+    // Sazonalidade Semanal
+    const specGrafico7 = {
+        $schema: "https://vega.github.io/schema/vega-lite/v5.json",
+        data: { values: sampleData },
+        config: configTemaDark,
+        width: "container", height: 280,
+        mark: { type: "line", point: true },
+        encoding: {
+            x: { field: "dia_semana", type: "nominal", title: "Dia da Semana", sort: ["segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado", "domingo"] },
+            y: { aggregate: "count", type: "quantitative", title: "Volume de Acidentes" },
+            color: { value: "#38bdf8" }
+        }
+    };
+
+    // Renderiza o gráfico no elemento com id "v-chart-7"
+    vegaEmbed("#v-chart-7", specGrafico7, { actions: false });
 }
