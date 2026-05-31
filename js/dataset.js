@@ -176,6 +176,25 @@ function iniciarGraficos(sampleData) {
     // Renderiza o gráfico no elemento com id "v-chart-1"
     vegaEmbed("#v-chart-1", specGrafico1, { actions: false });
 
+    // Gênero vs Severidade
+
+    const specGrafico2 = {
+        $schema: "https://vega.github.io/schema/vega-lite/v5.json",
+        data: { values: sampleData },
+        config: configTemaDark,
+        width: "container", height: 280,
+        transform: [{ filter: "datum.sexo === 'Masculino' || datum.sexo === 'Feminino'" }],
+        mark: "bar",
+        encoding: {
+            x: { field: "sexo", type: "nominal", title: "Gênero Informado" },
+            y: { aggregate: "count", type: "quantitative", title: "Total Envolvidos" },
+            color: { field: "classe_acc", type: "nominal", scale: { scheme: "accent" }, title: "Gravidade" }
+        }
+    };
+    // Renderiza o gráfico no elemento com id "v-chart-2"
+    vegaEmbed("#v-chart-2", specGrafico2, { actions: false });
+
+
     // Top 10 Causas com Maior Índice de Óbitos
     const specGrafico3 = {
         $schema: "https://vega.github.io/schema/vega-lite/v5.json",
@@ -205,6 +224,7 @@ function iniciarGraficos(sampleData) {
     // Renderiza o gráfico no elemento com id "v-chart-3"
     vegaEmbed("#v-chart-3", specGrafico3, { actions: false });
 
+
     // Vítimas por Tipo de Pista
     const specGrafico4 = {
         $schema: "https://vega.github.io/schema/vega-lite/v5.json",
@@ -221,6 +241,7 @@ function iniciarGraficos(sampleData) {
 
     // Renderiza o gráfico no elemento com id "v-chart-4"
     vegaEmbed("#v-chart-4", specGrafico4, { actions: false });
+
 
     // Impacto do Desenho Geométrico (Traçado da Via)
     const specGrafico5 = {
@@ -249,6 +270,7 @@ function iniciarGraficos(sampleData) {
     // Renderiza o gráfico no elemento com id "v-chart-5"
     vegaEmbed("#v-chart-5", specGrafico5, { actions: false });
 
+
     // Densidade Espacial por Fase do Dia e UF
     const specGrafico6 = {
         $schema: "https://vega.github.io/schema/vega-lite/v5.json",
@@ -266,6 +288,7 @@ function iniciarGraficos(sampleData) {
     // Renderiza o gráfico no elemento com id "v-chart-6"
     vegaEmbed("#v-chart-6", specGrafico6, { actions: false });
 
+
     // Sazonalidade Semanal
     const specGrafico7 = {
         $schema: "https://vega.github.io/schema/vega-lite/v5.json",
@@ -282,4 +305,62 @@ function iniciarGraficos(sampleData) {
 
     // Renderiza o gráfico no elemento com id "v-chart-7"
     vegaEmbed("#v-chart-7", specGrafico7, { actions: false });
+
+
+    // Meteorologia vs Tipo de Incidente
+    const specGrafico8 = {
+        $schema: "https://vega.github.io/schema/vega-lite/v5.json",
+        data: { values: sampleData },
+        config: configTemaDark,
+        width: "container", height: 280,
+        transform: [{ filter: "datum.condicao_metereologica !== 'Não Informado' && datum.tipo_acidente !== ''" }],
+        mark: "circle",
+        encoding: {
+            x: { field: "condicao_metereologica", type: "nominal", title: "Fator Climático", axis: { labelAngle: -20 } },
+            y: { field: "tipo_acidente", type: "nominal", title: "Natureza do Sinistro" },
+            size: { aggregate: "count", type: "quantitative", title: "Frequência" },
+            color: { value: "#10b981" }
+        }
+    };
+
+    // Renderiza o gráfico no elemento com id "v-chart-8"
+    vegaEmbed("#v-chart-8", specGrafico8, { actions: false });
+
+
+    // Distribuição por Tipo de Veículo
+    const specGrafico9 = {
+        $schema: "https://vega.github.io/schema/vega-lite/v5.json",
+        data: { values: sampleData },
+        config: configTemaDark,
+        width: "container", height: 280,
+        transform: [{ filter: "datum.tipo_veiculo !== ''" }],
+        mark: "bar",
+        encoding: {
+            y: { field: "tipo_veiculo", type: "nominal", title: "Modais de Transporte", sort: "-x" },
+            x: { aggregate: "count", type: "quantitative", title: "Frota Envolvida (Casos)" },
+            color: { value: "#2e3f59" }
+        }
+    };
+
+    // Renderiza o gráfico no elemento com id "v-chart-9"
+    vegaEmbed("#v-chart-9", specGrafico9, { actions: false });
+
+
+    // Volumetria por Superintendência Regional (PRF)
+    const specGrafico10 = {
+        $schema: "https://vega.github.io/schema/vega-lite/v5.json",
+        data: { values: sampleData },
+        config: configTemaDark,
+        width: "container", height: 280,
+        transform: [{ filter: "datum.regional !== ''" }],
+        mark: "bar",
+        encoding: {
+            x: { field: "regional", type: "nominal", title: "Superintendência Regional", sort: "-y", axis: { labelAngle: -45 } },
+            y: { aggregate: "count", type: "quantitative", title: "Atendimentos Executados" },
+            color: { field: "regional", type: "nominal", legend: null }
+        }
+    };
+
+    // Renderiza o gráfico no elemento com id "v-chart-10"
+    vegaEmbed("#v-chart-10", specGrafico10, { actions: false });
 }
