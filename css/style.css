@@ -1,7 +1,45 @@
+/* =====================================================
+   PRF 2026 — Design System
+   Paleta dark com alto contraste e coerência visual
+   ===================================================== */
+
+:root {
+    /* Cores de acento principais */
+    --accent-cyan:    #22d3ee;   /* cyan-400  — primário */
+    --accent-amber:   #fbbf24;   /* amber-400 — alerta/aviso */
+    --accent-emerald: #34d399;   /* emerald-400 — sucesso */
+    --accent-rose:    #fb7185;   /* rose-400  — perigo/óbito */
+    --accent-violet:  #a78bfa;   /* violet-400 — destaque neutro */
+    --accent-sky:     #38bdf8;   /* sky-400   — info secundária */
+    --accent-orange:  #fb923c;   /* orange-400 — feridos graves */
+
+    /* Superfícies */
+    --surface-base:   #0f1117;
+    --surface-card:   #1a1d27;
+    --surface-raised: #22263a;
+    --border-subtle:  rgba(255,255,255,0.08);
+
+    /* Texto */
+    --text-primary:   #f1f5f9;
+    --text-muted:     #94a3b8;
+
+    /* Paleta sequencial para gráficos (8 tons do mesmo hue — ciano→violeta) */
+    --chart-1: #22d3ee;
+    --chart-2: #38bdf8;
+    --chart-3: #818cf8;
+    --chart-4: #a78bfa;
+    --chart-5: #34d399;
+    --chart-6: #fbbf24;
+    --chart-7: #fb923c;
+    --chart-8: #fb7185;
+}
+
+/* ── Base ─────────────────────────────────────────── */
 body {
     display: flex;
     flex-direction: column;
     min-height: 100vh;
+    background-color: var(--surface-base);
 }
 
 main {
@@ -12,13 +50,107 @@ main {
     display: none;
 }
 
+/* ── KPI cards ────────────────────────────────────── */
+.kpi .col {
+    border: 1px solid rgba(255,255,255,0.06) !important;
+    backdrop-filter: blur(4px);
+}
+
+/* Óbitos → rose vibrante */
+.kpi .col:nth-child(1) {
+    background: linear-gradient(135deg, #be123c 0%, #9f1239 100%) !important;
+    color: #fff !important;
+}
+.kpi .col:nth-child(1) .fw-bold { color: #fecdd3 !important; }
+
+/* Feridos graves → amber */
+.kpi .col:nth-child(2) {
+    background: linear-gradient(135deg, #b45309 0%, #92400e 100%) !important;
+    color: #fff !important;
+}
+.kpi .col:nth-child(2) .fw-bold { color: #fde68a !important; }
+
+/* Feridos leves → sky */
+.kpi .col:nth-child(3) {
+    background: linear-gradient(135deg, #0369a1 0%, #075985 100%) !important;
+    color: #fff !important;
+}
+.kpi .col:nth-child(3) .fw-bold { color: #bae6fd !important; }
+
+/* Ilesos → emerald */
+.kpi .col:nth-child(4) {
+    background: linear-gradient(135deg, #065f46 0%, #064e3b 100%) !important;
+    color: #fff !important;
+}
+.kpi .col:nth-child(4) .fw-bold { color: #a7f3d0 !important; }
+
+/* ── Navbar ───────────────────────────────────────── */
+.navbar {
+    border-bottom: 1px solid var(--border-subtle) !important;
+    background-color: rgba(15, 17, 23, 0.92) !important;
+    backdrop-filter: blur(8px);
+}
+
+.navbar-brand {
+    color: var(--accent-cyan) !important;
+    letter-spacing: -0.01em;
+}
+
+.nav-link {
+    color: var(--text-muted) !important;
+    transition: color 0.15s;
+}
+.nav-link:hover,
+.nav-link.active {
+    color: var(--accent-cyan) !important;
+}
+
+/* ── Cards de gráficos ────────────────────────────── */
+.card {
+    background-color: var(--surface-card) !important;
+    border-color: var(--border-subtle) !important;
+    border-radius: 10px;
+}
+
+/* Títulos dos gráficos — cores de alto contraste */
+.card-title.text-info    { color: var(--accent-cyan)    !important; }
+.card-title.text-danger  { color: var(--accent-rose)    !important; }
+.card-title.text-warning { color: var(--accent-amber)   !important; }
+.card-title.text-success { color: var(--accent-emerald) !important; }
+.card-title.text-primary { color: var(--accent-sky)     !important; }
+
+/* ── Loading / progress ───────────────────────────── */
+.spinner-border.text-info { color: var(--accent-cyan) !important; }
+
+.progress-bar.bg-info {
+    background-color: var(--accent-cyan) !important;
+    color: #0f1117 !important;
+}
+
+/* ── Select de amostragem ─────────────────────────── */
+#sample-select {
+    background-color: var(--surface-raised) !important;
+    border-color: var(--border-subtle) !important;
+    color: var(--text-primary) !important;
+}
+
+/* ── Footer ───────────────────────────────────────── */
+footer {
+    background-color: var(--surface-card) !important;
+    border-top: 1px solid var(--border-subtle) !important;
+}
+
+footer a { color: var(--text-muted) !important; transition: color 0.15s; }
+footer a:hover { color: var(--accent-cyan) !important; }
+
+/* ── Página "Sobre os dados" ──────────────────────── */
 .campo-header {
     cursor: pointer;
     user-select: none;
 }
 
 .campo-header:hover .campo-titulo {
-    color: #67e8f9;
+    color: var(--accent-cyan);
 }
 
 .badge-total {
@@ -41,6 +173,11 @@ main {
 
 .progress {
     border-radius: 3px;
+    background-color: var(--surface-raised);
+}
+
+.progress-bar {
+    background-color: var(--accent-cyan) !important;
 }
 
 .collapse-icon {
@@ -52,9 +189,15 @@ main {
     transform: rotate(-90deg);
 }
 
+#search-input {
+    background-color: var(--surface-raised) !important;
+    border-color: var(--border-subtle) !important;
+    color: var(--text-primary) !important;
+}
+#search-input::placeholder { color: var(--text-muted); }
 #search-input:focus {
-    border-color: #0dcaf0;
-    box-shadow: 0 0 0 0.2rem rgba(13, 202, 240, 0.2);
+    border-color: var(--accent-cyan) !important;
+    box-shadow: 0 0 0 0.2rem rgba(34, 211, 238, 0.18) !important;
 }
 
 .sem-dados {
@@ -66,10 +209,62 @@ main {
     opacity: 0.5;
 }
 
+/* ── Página "Sobre nós" ───────────────────────────── */
+.card-membro {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.card-membro:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
 .avatar {
     overflow: hidden;
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
 }
 
 .avatar > img {
-    width: stretch;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.matricula {
+    font-family: monospace;
+    font-size: 0.8rem;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+}
+
+.projeto-badge {
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+}
+
+/* Badges dos membros — paleta coesa */
+.badge.bg-info    { background-color: var(--accent-cyan)    !important; color: #0f1117 !important; }
+.badge.bg-primary { background-color: var(--accent-sky)     !important; color: #0f1117 !important; }
+.badge.bg-success { background-color: var(--accent-emerald) !important; color: #0f1117 !important; }
+.badge.bg-warning { background-color: var(--accent-amber)   !important; color: #0f1117 !important; }
+.badge.bg-secondary { background-color: var(--surface-raised) !important; color: var(--text-primary) !important; border: 1px solid var(--border-subtle); }
+
+/* Texto de info no card de projeto */
+.text-info { color: var(--accent-cyan) !important; }
+
+/* ── Vega-Lite overrides (canvas backgrounds) ─────── */
+.vega-embed {
+    background: transparent !important;
+}
+.vega-embed canvas,
+.vega-embed svg {
+    background: transparent !important;
 }
