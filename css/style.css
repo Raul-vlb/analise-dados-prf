@@ -11,3 +11,65 @@ main {
 #main-content {
     display: none;
 }
+
+.campo-header {
+    cursor: pointer;
+    user-select: none;
+}
+
+.campo-header:hover .campo-titulo {
+    color: #67e8f9;
+}
+
+.badge-total {
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.valor-label {
+    font-size: 0.9rem;
+    max-width: 280px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.count-label {
+    font-size: 0.85rem;
+    white-space: nowrap;
+}
+
+.progress {
+    border-radius: 3px;
+}
+
+.collapse-icon {
+    transition: transform 0.2s;
+    font-size: 0.75rem;
+}
+
+.collapsed .collapse-icon {
+    transform: rotate(-90deg);
+}
+
+#search-input:focus {
+    border-color: #0dcaf0;
+    box-shadow: 0 0 0 0.2rem rgba(13, 202, 240, 0.2);
+}
+
+.sem-dados {
+    opacity: 0.5;
+    font-style: italic;
+}
+
+.tag-nao-informado {
+    opacity: 0.5;
+}
+
+.avatar {
+    overflow: hidden;
+}
+
+.avatar > img {
+    width: stretch;
+}
