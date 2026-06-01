@@ -1,366 +1,295 @@
-const URL_DATA = 'https://raw.githubusercontent.com/isaquexxz/projeto-extracao-de-dados/refs/heads/main/Dados_limpos.csv';
-let BASE_PROCESSED = [];
-let CURRENT_SUBSET = [];
-const sample = 10000; // Define o tamanho da amostra para os gráficos
+/**
+ * dataset.js — Controla index.html
+ * Depende de: core.js (deve ser carregado antes), Vega-Lite, PapaParse
+ */
+
+// Referências das views do Vega para atualização sem re-render
+const _vegaViews = {};
+
+// ─── Inicialização ────────────────────────────────────────────────────────────
 
 document.getElementById('withData').style.display = 'none';
 document.getElementById('noData').style.display = 'block';
 
-Papa.parse(URL_DATA, {
-    download: true, header: true, skipEmptyLines: true,
-    complete: function (res) {
-        BASE_PROCESSED = res.data.map(d => ({
-            ...d,
-            feridos_graves: d.feridos_graves ? parseInt(d.feridos_graves, 10) : 0,
-            feridos_leves: d.feridos_leves ? parseInt(d.feridos_leves, 10) : 0,
-            mortos: d.mortos ? parseInt(d.mortos, 10) : 0,
-            ilesos: d.ilesos ? parseInt(d.ilesos, 10) : 0,
-            idade: d.idade ? parseFloat(d.idade) : null,
-            classe_acc: d.classe_acc || d.classificacao_accidente || d.classificacao_acidente || 'Não Especificado'
-        }));
+PRF_CORE.carregar({
+    onProgress(loaded, total) {
+        if (loaded === 1) {
+            // Primeira chamada — exibe o progresso detalhado
+            document.getElementById('withData').style.display = 'block';
+            document.getElementById('noData').style.display = 'none';
+            document.getElementById('totalData').innerText = total.toLocaleString('pt-BR');
+        }
 
-        document.getElementById('withData').style.display = 'block';
-        document.getElementById('noData').style.display = 'none';
+        document.getElementById('loadingData').innerText = loaded.toLocaleString('pt-BR');
 
-        Estatisticas(BASE_PROCESSED);
+        const pct = total > 0 ? Math.round((loaded / total) * 100) : 0;
+        const bar = document.getElementById('progressbar');
+        if (bar) {
+            bar.style.width = `${pct}%`;
+            bar.setAttribute('aria-valuenow', pct);
+            bar.innerText = `${pct}%`;
+        }
+    },
+
+    onReady({ base, kpis }) {
+        // KPIs
+        document.getElementById('kpi-mortos').innerText = kpis.mortos.toLocaleString('pt-BR');
+        document.getElementById('kpi-graves').innerText = kpis.graves.toLocaleString('pt-BR');
+        document.getElementById('kpi-leves').innerText  = kpis.leves.toLocaleString('pt-BR');
+        document.getElementById('kpi-ilesos').innerText = kpis.ilesos.toLocaleString('pt-BR');
+
+        // Exibe conteúdo principal
+        document.getElementById('loading').style.display      = 'none';
+        document.getElementById('main-content').style.display = 'block';
+        document.getElementById('reg-count').innerText        = kpis.total.toLocaleString('pt-BR');
+
+        // Renderiza gráficos com amostra inicial
+        const amostraInicial = base.slice(0, 10000);
+        iniciarGraficos(amostraInicial);
+
+        // Troca de amostra — atualiza dados sem recriar os gráficos
+        document.getElementById('sample-select').addEventListener('change', function () {
+            const val    = this.value;
+            const subset = val === 'all' ? base : base.slice(0, parseInt(val));
+            atualizarDadosGraficos(subset);
+        });
+    },
+
+    onError(err) {
+        document.getElementById('loading').innerHTML = `
+            <div class="alert alert-danger text-center">
+                Erro ao carregar o dataset. Verifique sua conexão e recarregue a página.<br>
+                <small class="text-muted">${err.message || err}</small>
+            </div>`;
     }
 });
 
-function Estatisticas(dataset) {
-    let mortos = 0, graves = 0, leves = 0, ilesos = 0;
-    let somaIdades = 0, idadesValidas = 0;
+// ─── Configuração de tema ─────────────────────────────────────────────────────
 
-    const mapasRecorrenciaGlobais = {};
-    if (dataset.length > 0) {
-        Object.keys(dataset[0]).forEach(chave => {
-            mapasRecorrenciaGlobais[chave] = {};
-        });
-    }
-
-    const totalData = dataset.length;
-    document.getElementById('totalData').innerText = totalData.toLocaleString('pt-BR');
-
-    let index = 0;
-    const tamanhoLote = 2000;
-    function processarLote() {
-        const fim = Math.min(index + tamanhoLote, totalData);
-
-        for (let i = index; i < fim; i++) {
-            const d = dataset[i];
-
-            mortos += d.mortos;
-            graves += d.feridos_graves;
-            leves += d.feridos_leves;
-            ilesos += d.ilesos;
-
-            for (let chave in mapasRecorrenciaGlobais) {
-                let valor = d[chave] !== undefined && d[chave] !== "" ? d[chave] : "NÃO INFORMADO";
-                mapasRecorrenciaGlobais[chave][valor] = (mapasRecorrenciaGlobais[chave][valor] || 0) + 1;
-            }
-
-            let id = parseInt(d.idade, 10);
-            if (!isNaN(id) && id > 0 && id < 110) {
-                somaIdades += id;
-                idadesValidas++;
-            }
-        }
-
-        index = fim;
-        // Atualiza o contador na tela
-        document.getElementById('loadingData').innerText = index.toLocaleString('pt-BR');
-
-        // Calcule o percentual atual (garantindo que não divida por zero)
-        const percentual = totalData > 0 ? Math.round((index / totalData) * 100) : 0;
-
-        // Capture o elemento da barra de progresso
-        const progressBar = document.getElementById('progressbar');
-        if (progressBar) {
-            progressBar.style.width = `${percentual}%`;
-            progressBar.setAttribute('aria-valuenow', percentual);
-            progressBar.innerText = `${percentual}%`;
-        }
-
-        if (index < totalData) {
-            // Se ainda não terminou, joga o próximo lote para a próxima brecha do navegador
-            setTimeout(processarLote, 0);
-        } else {
-            // Quando termina tudo, atualiza os KPIs finais
-            document.getElementById('kpi-mortos').innerText = mortos.toLocaleString('pt-BR');
-            document.getElementById('kpi-graves').innerText = graves.toLocaleString('pt-BR');
-            document.getElementById('kpi-leves').innerText = leves.toLocaleString('pt-BR');
-            document.getElementById('kpi-ilesos').innerText = ilesos.toLocaleString('pt-BR');
-
-            // libera o conteúdo principal
-            document.getElementById('loading').style.display = 'none';
-            document.getElementById('main-content').style.display = 'block'
-
-            document.getElementById('reg-count').innerText = totalData.toLocaleString('pt-BR');
-
-            // Para ativar os gráficos, chame-os aqui:
-            iniciarGraficos(BASE_PROCESSED.slice(0, 10000)); // Passa uma amostra para os gráficos, para não sobrecarregar a renderização inicial
-
-            document.getElementById('sample-select').addEventListener('change', function () {
-                const val = this.value;
-                const subset = val === 'all' ? BASE_PROCESSED : BASE_PROCESSED.slice(0, parseInt(val));
-                iniciarGraficos(subset);
-            });
-        }
-    }
-
-    if (totalData > 0) {
-        processarLote();
-    } else {
-        document.getElementById('loadingData').innerText = "0";
+const CONFIG_DARK = {
+    background: 'transparent',
+    view: { stroke: 'transparent' },
+    axis: {
+        domainColor: '#555', gridColor: '#333', tickColor: '#555',
+        labelColor: '#aaa', titleColor: '#ccc',
+        labelFont: 'system-ui, sans-serif', titleFont: 'system-ui, sans-serif',
+        titleFontSize: 12, labelFontSize: 11
+    },
+    legend: {
+        labelColor: '#aaa', titleColor: '#ccc',
+        labelFont: 'system-ui, sans-serif', titleFont: 'system-ui, sans-serif',
+        titleFontSize: 12, labelFontSize: 11
+    },
+    title: {
+        color: '#e0e0e0', subtitleColor: '#aaa',
+        font: 'system-ui, sans-serif', fontSize: 14, fontWeight: 'bold'
+    },
+    mark: { tooltip: true },
+    point: { filled: true },
+    range: {
+        category:  ['#38bdf8','#fb923c','#a78bfa','#34d399','#f472b6','#facc15','#60a5fa','#f87171'],
+        diverging: ['#f87171','#fb923c','#facc15','#34d399','#38bdf8','#a78bfa'],
+        heatmap:   ['#1e3a5f','#1e6091','#1a759f','#168aad','#34a0a4','#52b69a','#76c893','#99d98c']
     }
 };
 
+// ─── Specs dos gráficos ───────────────────────────────────────────────────────
 
-function iniciarGraficos(sampleData) {
-    // Aqui ocorre a construção dos specs dos gráficos usando o sampleData, 
-    // e depois a renderização com vegaEmbed.
+function buildSpecs(data) {
+    const base = { config: CONFIG_DARK, width: 'container', height: 280 };
 
-    // Configuração de tema escuro para os gráficos Vega-Lite
-    const configTemaDark = {
-        background: "transparent",
-        view: { stroke: "transparent" },
-        axis: {
-            domainColor: "#555",
-            gridColor: "#333",
-            tickColor: "#555",
-            labelColor: "#aaa",
-            titleColor: "#ccc",
-            labelFont: "system-ui, sans-serif",
-            titleFont: "system-ui, sans-serif",
-            titleFontSize: 12,
-            labelFontSize: 11
+    return [
+        // 1 — Pirâmide Etária vs Gravidade
+        {
+            ...base,
+            $schema: 'https://vega.github.io/schema/vega-lite/v5.json',
+            data: { values: data },
+            transform: [{ filter: 'datum.idade > 0 && datum.idade < 95' }],
+            mark: 'bar',
+            encoding: {
+                x: { field: 'idade', type: 'quantitative', bin: { maxbins: 15 }, title: 'Idade Correlacionada' },
+                y: { aggregate: 'count', type: 'quantitative', title: 'Registros de Envolvidos' },
+                color: { field: 'estado_fisico', type: 'nominal', scale: { scheme: 'category10' }, title: 'Condição' }
+            }
         },
-        legend: {
-            labelColor: "#aaa",
-            titleColor: "#ccc",
-            labelFont: "system-ui, sans-serif",
-            titleFont: "system-ui, sans-serif",
-            titleFontSize: 12,
-            labelFontSize: 11
+
+        // 2 — Gênero vs Severidade
+        {
+            ...base,
+            $schema: 'https://vega.github.io/schema/vega-lite/v5.json',
+            data: { values: data },
+            transform: [{ filter: "datum.sexo === 'Masculino' || datum.sexo === 'Feminino'" }],
+            mark: 'bar',
+            encoding: {
+                x: { field: 'sexo', type: 'nominal', title: 'Gênero Informado' },
+                y: { aggregate: 'count', type: 'quantitative', title: 'Total Envolvidos' },
+                color: { field: 'classe_acc', type: 'nominal', scale: { scheme: 'accent' }, title: 'Gravidade' }
+            }
         },
-        title: {
-            color: "#e0e0e0",
-            subtitleColor: "#aaa",
-            font: "system-ui, sans-serif",
-            fontSize: 14,
-            fontWeight: "bold"
+
+        // 3 — Top 10 Causas com Maior Índice de Óbitos
+        {
+            ...base,
+            $schema: 'https://vega.github.io/schema/vega-lite/v5.json',
+            data: { values: data },
+            transform: [
+                { filter: "datum.causa_acidente !== 'NÃO INFORMADO' && datum.causa_acidente !== ''" },
+                { aggregate: [{ op: 'sum', field: 'mortos', as: 'total_mortos' }], groupby: ['causa_acidente'] },
+                { window: [{ op: 'row_number', as: 'rank' }], sort: [{ field: 'total_mortos', order: 'descending' }] },
+                { filter: 'datum.rank <= 10' }
+            ],
+            mark: { type: 'bar', cornerRadiusTopLeft: 4, cornerRadiusTopRight: 4 },
+            encoding: {
+                x: { field: 'causa_acidente', type: 'nominal', title: 'Top 10 Causas Principais', sort: '-y', axis: { labelAngle: -25, labelLimit: 120 } },
+                y: { field: 'total_mortos', type: 'quantitative', title: 'Soma Absoluta de Óbitos' },
+                color: { value: '#ef4444' }
+            }
         },
-        mark: { tooltip: true },
-        point: { filled: true },
-        range: {
-            category: ["#38bdf8", "#fb923c", "#a78bfa", "#34d399", "#f472b6", "#facc15", "#60a5fa", "#f87171"],
-            diverging: ["#f87171", "#fb923c", "#facc15", "#34d399", "#38bdf8", "#a78bfa"],
-            heatmap: ["#1e3a5f", "#1e6091", "#1a759f", "#168aad", "#34a0a4", "#52b69a", "#76c893", "#99d98c"]
+
+        // 4 — Vítimas por Tipo de Pista
+        {
+            ...base,
+            $schema: 'https://vega.github.io/schema/vega-lite/v5.json',
+            data: { values: data },
+            mark: 'bar',
+            encoding: {
+                x: { field: 'tipo_pista', type: 'nominal', title: 'Pista', axis: { labelAngle: 0 } },
+                y: { aggregate: 'sum', field: 'feridos_graves', type: 'quantitative', title: 'Feridos Graves' },
+                color: { value: '#f59e0b' }
+            }
+        },
+
+        // 5 — Impacto do Desenho Geométrico (Traçado da Via)
+        {
+            ...base,
+            $schema: 'https://vega.github.io/schema/vega-lite/v5.json',
+            data: { values: data },
+            transform: [
+                { filter: "datum.tracado_via !== 'Não Informado' && datum.tracado_via !== '' && datum.tracado_via !== null" },
+                { aggregate: [{ op: 'count', as: 'total_ocorrencias' }], groupby: ['tracado_via', 'classe_acc'] },
+                { joinaggregate: [{ op: 'sum', field: 'total_ocorrencias', as: 'total_por_tracado' }], groupby: ['tracado_via'] },
+                { window: [{ op: 'dense_rank', as: 'ranking_posicao' }], sort: [{ field: 'total_por_tracado', order: 'descending' }] },
+                { calculate: "datum.ranking_posicao <= 7 ? datum.tracado_via : 'Outros Layouts'", as: 'tracado_agrupado' }
+            ],
+            mark: { type: 'bar', cornerRadiusTopLeft: 4, cornerRadiusTopRight: 4 },
+            encoding: {
+                x: { field: 'tracado_agrupado', type: 'nominal', title: 'Configuração Geométrica da Via', sort: '-y', axis: { labelAngle: 0, labelOverlap: 'hide', labelLimit: 110 } },
+                y: { field: 'total_ocorrencias', type: 'quantitative', aggregate: 'sum', title: 'Quantidade de Ocorrências' },
+                color: { field: 'classe_acc', type: 'nominal', scale: { scheme: 'tableau10' }, title: 'Gravidade' }
+            }
+        },
+
+        // 6 — Densidade Espacial por Fase do Dia e UF
+        {
+            ...base,
+            $schema: 'https://vega.github.io/schema/vega-lite/v5.json',
+            data: { values: data },
+            mark: 'rect',
+            encoding: {
+                x: { field: 'uf', type: 'nominal', title: 'Estado (UF)' },
+                y: { field: 'fase_dia', type: 'nominal', title: 'Fase Luminosa' },
+                color: { aggregate: 'count', type: 'quantitative', scale: { scheme: 'viridis' }, title: 'Sinistros' }
+            }
+        },
+
+        // 7 — Sazonalidade Semanal
+        {
+            ...base,
+            $schema: 'https://vega.github.io/schema/vega-lite/v5.json',
+            data: { values: data },
+            mark: { type: 'line', point: true },
+            encoding: {
+                x: { field: 'dia_semana', type: 'nominal', title: 'Dia da Semana', sort: ['segunda-feira','terça-feira','quarta-feira','quinta-feira','sexta-feira','sábado','domingo'] },
+                y: { aggregate: 'count', type: 'quantitative', title: 'Volume de Acidentes' },
+                color: { value: '#38bdf8' }
+            }
+        },
+
+        // 8 — Meteorologia vs Tipo de Incidente
+        {
+            ...base,
+            $schema: 'https://vega.github.io/schema/vega-lite/v5.json',
+            data: { values: data },
+            transform: [{ filter: "datum.condicao_metereologica !== 'Não Informado' && datum.tipo_acidente !== ''" }],
+            mark: 'circle',
+            encoding: {
+                x: { field: 'condicao_metereologica', type: 'nominal', title: 'Fator Climático', axis: { labelAngle: -20 } },
+                y: { field: 'tipo_acidente', type: 'nominal', title: 'Natureza do Sinistro' },
+                size: { aggregate: 'count', type: 'quantitative', title: 'Frequência' },
+                color: { value: '#10b981' }
+            }
+        },
+
+        // 9 — Distribuição por Tipo de Veículo
+        {
+            ...base,
+            $schema: 'https://vega.github.io/schema/vega-lite/v5.json',
+            data: { values: data },
+            transform: [{ filter: "datum.tipo_veiculo !== ''" }],
+            mark: 'bar',
+            encoding: {
+                y: { field: 'tipo_veiculo', type: 'nominal', title: 'Modais de Transporte', sort: '-x' },
+                x: { aggregate: 'count', type: 'quantitative', title: 'Frota Envolvida (Casos)' },
+                color: { value: '#2e3f59' }
+            }
+        },
+
+        // 10 — Volumetria por Superintendência Regional
+        {
+            ...base,
+            $schema: 'https://vega.github.io/schema/vega-lite/v5.json',
+            data: { values: data },
+            transform: [{ filter: "datum.regional !== ''" }],
+            mark: 'bar',
+            encoding: {
+                x: { field: 'regional', type: 'nominal', title: 'Superintendência Regional', sort: '-y', axis: { labelAngle: -45 } },
+                y: { aggregate: 'count', type: 'quantitative', title: 'Atendimentos Executados' },
+                color: { field: 'regional', type: 'nominal', legend: null }
+            }
         }
-    };
+    ];
+}
 
-    // Exemplo para o primeiro gráfico:
-    const specGrafico1 = {
-        $schema: "https://vega.github.io/schema/vega-lite/v5.json",
-        data: { values: sampleData },
-        config: configTemaDark,
-        width: "container", height: 280,
-        transform: [{ filter: "datum.idade > 0 && datum.idade < 95" }],
-        mark: "bar",
-        encoding: {
-            x: { field: "idade", type: "quantitative", bin: { maxbins: 15 }, title: "Idade Correlacionada" },
-            y: { aggregate: "count", type: "quantitative", title: "Registros de Envolvidos" },
-            color: { field: "estado_fisico", type: "nominal", scale: { scheme: "category10" }, title: "Condição" }
+// ─── Renderização e atualização ───────────────────────────────────────────────
+
+async function iniciarGraficos(data) {
+    const specs = buildSpecs(data);
+
+    // Renderiza todos em paralelo
+    const promises = specs.map((spec, i) => {
+        const id = `#v-chart-${i + 1}`;
+        return vegaEmbed(id, spec, { actions: false })
+            .then(result => { _vegaViews[i] = result.view; })
+            .catch(err => console.error(`Erro no gráfico ${i + 1}:`, err));
+    });
+
+    await Promise.all(promises);
+}
+
+function atualizarDadosGraficos(novosDados) {
+    // Se as views já existem, atualiza apenas os dados sem re-renderizar
+    const ids = Object.keys(_vegaViews);
+
+    if (ids.length === 0) {
+        // Fallback: primeira renderização ainda não ocorreu
+        iniciarGraficos(novosDados);
+        return;
+    }
+
+    ids.forEach(i => {
+        const view = _vegaViews[i];
+        if (!view) return;
+        try {
+            view.change('source_0',
+                vega.changeset()
+                    .remove(() => true)
+                    .insert(novosDados)
+            ).run();
+        } catch {
+            // Gráfico com transform complexo pode não suportar changeset — re-renderiza só esse
+            const specs = buildSpecs(novosDados);
+            vegaEmbed(`#v-chart-${parseInt(i) + 1}`, specs[i], { actions: false })
+                .then(r => { _vegaViews[i] = r.view; });
         }
-    };
-
-    // Renderiza o gráfico no elemento com id "v-chart-1"
-    vegaEmbed("#v-chart-1", specGrafico1, { actions: false });
-
-    // Gênero vs Severidade
-
-    const specGrafico2 = {
-        $schema: "https://vega.github.io/schema/vega-lite/v5.json",
-        data: { values: sampleData },
-        config: configTemaDark,
-        width: "container", height: 280,
-        transform: [{ filter: "datum.sexo === 'Masculino' || datum.sexo === 'Feminino'" }],
-        mark: "bar",
-        encoding: {
-            x: { field: "sexo", type: "nominal", title: "Gênero Informado" },
-            y: { aggregate: "count", type: "quantitative", title: "Total Envolvidos" },
-            color: { field: "classe_acc", type: "nominal", scale: { scheme: "accent" }, title: "Gravidade" }
-        }
-    };
-    // Renderiza o gráfico no elemento com id "v-chart-2"
-    vegaEmbed("#v-chart-2", specGrafico2, { actions: false });
-
-
-    // Top 10 Causas com Maior Índice de Óbitos
-    const specGrafico3 = {
-        $schema: "https://vega.github.io/schema/vega-lite/v5.json",
-        data: { values: sampleData },
-        config: configTemaDark,
-        width: "container", height: 280,
-        transform: [
-            { filter: "datum.causa_acidente !== 'NÃO INFORMADO' && datum.causa_acidente !== ''" },
-            {
-                aggregate: [{ op: "sum", field: "mortos", as: "total_mortos" }],
-                groupby: ["causa_acidente"]
-            },
-            {
-                window: [{ op: "row_number", as: "rank" }],
-                sort: [{ field: "total_mortos", order: "descending" }]
-            },
-            { filter: "datum.rank <= 10" }
-        ],
-        mark: { type: "bar", cornerRadiusTopLeft: 4, cornerRadiusTopRight: 4 },
-        encoding: {
-            x: { field: "causa_acidente", type: "nominal", title: "Top 10 Causas Principais", sort: "-y", axis: { labelAngle: -25, labelLimit: 120 } },
-            y: { field: "total_mortos", type: "quantitative", title: "Soma Absoluta de Óbitos" },
-            color: { value: "#ef4444" }
-        }
-    };
-
-    // Renderiza o gráfico no elemento com id "v-chart-3"
-    vegaEmbed("#v-chart-3", specGrafico3, { actions: false });
-
-
-    // Vítimas por Tipo de Pista
-    const specGrafico4 = {
-        $schema: "https://vega.github.io/schema/vega-lite/v5.json",
-        data: { values: sampleData },
-        config: configTemaDark,
-        width: "container", height: 280,
-        mark: "bar",
-        encoding: {
-            x: { field: "tipo_pista", type: "nominal", title: "Pista", axis: { labelAngle: 0 } },
-            y: { aggregate: "sum", field: "feridos_graves", type: "quantitative", title: "Feridos Graves" },
-            color: { value: "#f59e0b" }
-        }
-    };
-
-    // Renderiza o gráfico no elemento com id "v-chart-4"
-    vegaEmbed("#v-chart-4", specGrafico4, { actions: false });
-
-
-    // Impacto do Desenho Geométrico (Traçado da Via)
-    const specGrafico5 = {
-        $schema: "https://vega.github.io/schema/vega-lite/v5.json",
-        data: { values: sampleData },
-        config: configTemaDark,
-        width: "container", height: 280,
-        transform: [
-            { filter: "datum.tracado_via !== 'Não Informado' && datum.tracado_via !== '' && datum.tracado_via !== null" },
-            { aggregate: [{ op: "count", as: "total_ocorrencias" }], groupby: ["tracado_via", "classe_acc"] },
-            { joinaggregate: [{ op: "sum", field: "total_ocorrencias", as: "total_por_tracado" }], groupby: ["tracado_via"] },
-            { window: [{ op: "dense_rank", as: "ranking_posicao" }], sort: [{ field: "total_por_tracado", order: "descending" }] },
-            { calculate: "datum.ranking_posicao <= 7 ? datum.tracado_via : 'Outros Layouts'", as: "tracado_agrupado" }
-        ],
-        mark: { type: "bar", cornerRadiusTopLeft: 4, cornerRadiusTopRight: 4 },
-        encoding: {
-            x: {
-                field: "tracado_agrupado", type: "nominal", title: "Configuração Geométrica da Via", sort: "-y",
-                axis: { labelAngle: 0, labelOverlap: "hide", labelLimit: 110 }
-            },
-            y: { field: "total_ocorrencias", type: "quantitative", aggregate: "sum", title: "Quantidade de Ocorrências" },
-            color: { field: "classe_acc", type: "nominal", scale: { scheme: "tableau10" }, title: "Gravidade" }
-        }
-    };
-
-    // Renderiza o gráfico no elemento com id "v-chart-5"
-    vegaEmbed("#v-chart-5", specGrafico5, { actions: false });
-
-
-    // Densidade Espacial por Fase do Dia e UF
-    const specGrafico6 = {
-        $schema: "https://vega.github.io/schema/vega-lite/v5.json",
-        data: { values: sampleData },
-        config: configTemaDark,
-        width: "container", height: 280,
-        mark: "rect",
-        encoding: {
-            x: { field: "uf", type: "nominal", title: "Estado (UF)" },
-            y: { field: "fase_dia", type: "nominal", title: "Fase Luminosa" },
-            color: { aggregate: "count", type: "quantitative", scale: { scheme: "viridis" }, title: "Sinistros" }
-        }
-    };
-
-    // Renderiza o gráfico no elemento com id "v-chart-6"
-    vegaEmbed("#v-chart-6", specGrafico6, { actions: false });
-
-
-    // Sazonalidade Semanal
-    const specGrafico7 = {
-        $schema: "https://vega.github.io/schema/vega-lite/v5.json",
-        data: { values: sampleData },
-        config: configTemaDark,
-        width: "container", height: 280,
-        mark: { type: "line", point: true },
-        encoding: {
-            x: { field: "dia_semana", type: "nominal", title: "Dia da Semana", sort: ["segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado", "domingo"] },
-            y: { aggregate: "count", type: "quantitative", title: "Volume de Acidentes" },
-            color: { value: "#38bdf8" }
-        }
-    };
-
-    // Renderiza o gráfico no elemento com id "v-chart-7"
-    vegaEmbed("#v-chart-7", specGrafico7, { actions: false });
-
-
-    // Meteorologia vs Tipo de Incidente
-    const specGrafico8 = {
-        $schema: "https://vega.github.io/schema/vega-lite/v5.json",
-        data: { values: sampleData },
-        config: configTemaDark,
-        width: "container", height: 280,
-        transform: [{ filter: "datum.condicao_metereologica !== 'Não Informado' && datum.tipo_acidente !== ''" }],
-        mark: "circle",
-        encoding: {
-            x: { field: "condicao_metereologica", type: "nominal", title: "Fator Climático", axis: { labelAngle: -20 } },
-            y: { field: "tipo_acidente", type: "nominal", title: "Natureza do Sinistro" },
-            size: { aggregate: "count", type: "quantitative", title: "Frequência" },
-            color: { value: "#10b981" }
-        }
-    };
-
-    // Renderiza o gráfico no elemento com id "v-chart-8"
-    vegaEmbed("#v-chart-8", specGrafico8, { actions: false });
-
-
-    // Distribuição por Tipo de Veículo
-    const specGrafico9 = {
-        $schema: "https://vega.github.io/schema/vega-lite/v5.json",
-        data: { values: sampleData },
-        config: configTemaDark,
-        width: "container", height: 280,
-        transform: [{ filter: "datum.tipo_veiculo !== ''" }],
-        mark: "bar",
-        encoding: {
-            y: { field: "tipo_veiculo", type: "nominal", title: "Modais de Transporte", sort: "-x" },
-            x: { aggregate: "count", type: "quantitative", title: "Frota Envolvida (Casos)" },
-            color: { value: "#2e3f59" }
-        }
-    };
-
-    // Renderiza o gráfico no elemento com id "v-chart-9"
-    vegaEmbed("#v-chart-9", specGrafico9, { actions: false });
-
-
-    // Volumetria por Superintendência Regional (PRF)
-    const specGrafico10 = {
-        $schema: "https://vega.github.io/schema/vega-lite/v5.json",
-        data: { values: sampleData },
-        config: configTemaDark,
-        width: "container", height: 280,
-        transform: [{ filter: "datum.regional !== ''" }],
-        mark: "bar",
-        encoding: {
-            x: { field: "regional", type: "nominal", title: "Superintendência Regional", sort: "-y", axis: { labelAngle: -45 } },
-            y: { aggregate: "count", type: "quantitative", title: "Atendimentos Executados" },
-            color: { field: "regional", type: "nominal", legend: null }
-        }
-    };
-
-    // Renderiza o gráfico no elemento com id "v-chart-10"
-    vegaEmbed("#v-chart-10", specGrafico10, { actions: false });
+    });
 }
